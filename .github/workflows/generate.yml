@@ -1,10 +1,9 @@
 name: Generate Shorts
 
-# NOT IN PRODUCTION YET.
-# - The daily schedule is commented out on purpose. Uncomment it when the agent
-#   is polished and you are ready to post automatically.
-# - Manual runs default to DRY-RUN (no upload). Uploading requires both
-#   upload=true AND the SHORTS_PLATFORMS secret/var to list platforms.
+# LIVE: runs daily (cron) and uploads to the platforms in the SHORTS_PLATFORMS
+# repo variable, using mode=semi (videos go up PRIVATE for you to review/publish).
+# - Scheduled runs always upload; manual runs default to dry-run (set upload=true to post).
+# - To pause automation, comment out the `schedule:` block below.
 
 on:
   workflow_dispatch:
@@ -13,8 +12,8 @@ on:
         description: "Actually upload? (requires SHORTS_PLATFORMS set)"
         type: boolean
         default: false
-  # schedule:
-  #   - cron: "0 14 * * *"   # daily 14:00 UTC — enable when ready
+  schedule:
+    - cron: "0 14 * * *"   # daily at 14:00 UTC (1 video/day)
 
 permissions:
   contents: write           # to commit state/history.db back
@@ -56,7 +55,8 @@ jobs:
           # Empty unless you set the repo variable -> stays out of production.
           SHORTS_PLATFORMS: ${{ vars.SHORTS_PLATFORMS }}
         run: |
-          if [ "${{ inputs.upload }}" = "true" ]; then
+          # Scheduled runs always upload; manual runs upload only if requested.
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.upload }}" = "true" ]; then
             python -m shorts_agent.main run --upload
           else
             python -m shorts_agent.main run --dry-run
