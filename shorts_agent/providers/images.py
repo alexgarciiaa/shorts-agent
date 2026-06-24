@@ -36,7 +36,7 @@ class PollinationsImageProvider:
             + (f"&token={self.token}" if self.token else "")
         )
         try:
-            resp = requests.get(url, timeout=180)
+            resp = requests.get(url, timeout=60)
             resp.raise_for_status()
             if not resp.content or len(resp.content) < 2000:
                 raise ValueError("empty/too-small image response")

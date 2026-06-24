@@ -21,7 +21,7 @@ class Config:
 
     # --- images (Pollinations) ---
     image_model: str = "flux"
-    image_enhance: bool = True               # let the API enrich the prompt for crisper images
+    image_enhance: bool = False              # OFF: enhance is very slow (~45s/img) and doesn't raise resolution
     image_upscale: float = 2.0              # render motion at Nx then downscale (anti-judder)
     image_sharpen: bool = True               # LANCZOS scaling + unsharp to fight pixelation
     # Pollinations anonymous tier caps output at ~576x1024; a free token unlocks
