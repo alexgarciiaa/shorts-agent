@@ -1,7 +1,7 @@
 # Edit the agent without touching code. Secrets stay in .env (never here).
 
 # Publishing mode: "semi" = upload private + notify you to review; "auto" = post directly.
-mode: semi
+mode: auto
 
 # Channel language: "en", "es", "pt", "fr". Drives the script language.
 # For a Spanish channel, copy this file and set: language: es + a Spanish voice
@@ -53,4 +53,4 @@ enable_whoosh: true
 
 # Upload targets (also overridable via env SHORTS_PLATFORMS). Empty = never post.
 # platforms: ["youtube", "tiktok"]
-youtube_privacy: private          # private | unlisted | public
+youtube_privacy: public           # private | unlisted | public
