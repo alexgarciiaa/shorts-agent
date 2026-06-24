@@ -1,0 +1,80 @@
+name: Generate Shorts
+
+# NOT IN PRODUCTION YET.
+# - The daily schedule is commented out on purpose. Uncomment it when the agent
+#   is polished and you are ready to post automatically.
+# - Manual runs default to DRY-RUN (no upload). Uploading requires both
+#   upload=true AND the SHORTS_PLATFORMS secret/var to list platforms.
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: "Actually upload? (requires SHORTS_PLATFORMS set)"
+        type: boolean
+        default: false
+  # schedule:
+  #   - cron: "0 14 * * *"   # daily 14:00 UTC — enable when ready
+
+permissions:
+  contents: write           # to commit state/history.db back
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+        # ffmpeg is bundled via imageio-ffmpeg — no apt install needed.
+
+      - name: Cache whisper model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: whisper-models-v1
+          restore-keys: whisper-models-
+
+      - name: Generate (and optionally upload)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          POLLINATIONS_TOKEN: ${{ secrets.POLLINATIONS_TOKEN }}
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
+          TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
+          TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
+          # Empty unless you set the repo variable -> stays out of production.
+          SHORTS_PLATFORMS: ${{ vars.SHORTS_PLATFORMS }}
+        run: |
+          if [ "${{ inputs.upload }}" = "true" ]; then
+            python -m shorts_agent.main run --upload
+          else
+            python -m shorts_agent.main run --dry-run
+          fi
+
+      - name: Upload video artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: short
+          path: |
+            out/**/short.mp4
+            out/**/thumbnail.jpg
+            out/**/metadata.json
+          if-no-files-found: warn
+
+      - name: Persist history (dedupe state)
+        run: |
+          git config user.name "shorts-agent"
+          git config user.email "bot@users.noreply.github.com"
+          git add state/history.db || true
+          git commit -m "chore: update history [skip ci]" || echo "no changes"
+          git push || echo "nothing to push"

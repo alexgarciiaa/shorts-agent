@@ -1,0 +1,56 @@
+# Edit the agent without touching code. Secrets stay in .env (never here).
+
+# Publishing mode: "semi" = upload private + notify you to review; "auto" = post directly.
+mode: semi
+
+# Channel language: "en", "es", "pt", "fr". Drives the script language.
+# For a Spanish channel, copy this file and set: language: es + a Spanish voice
+# (e.g. tts_voice: es-ES-AlvaroNeural).
+language: en
+
+# Video length: number of scenes (~5-6s each). 8 ≈ 45s, 6 ≈ 30s.
+n_scenes: 8
+
+# Closing call-to-action — keep it topic-agnostic so it fits any video subject.
+outro_cta: "FOLLOW FOR DAILY FACTS"
+
+# Channel hashtags appended to every description (brand colors/font live in config.py:
+# caption_fill_color #F4F1E8, caption_emphasis_color #FFE63D, font Anton).
+hashtags: ["#didyouknow", "#facts", "#shorts", "#funfacts", "#todayilearned", "#mindblown"]
+
+# Idea sourcing: pull a trending fact from Reddit to seed the script (falls back to
+# a random subtopic from knowledge/niche.yaml if Reddit is unavailable).
+enable_trends: true
+
+# Voice (any edge-tts voice id)
+tts_voice: en-US-AndrewMultilingualNeural   # warm, natural, human-sounding
+tts_rate: "+11%"                   # snappier pacing (a bit faster)
+scene_tail_seconds: 0.10          # pause held after each scene (lower = tighter)
+
+# Visual style shared by all images (keeps a cohesive look)
+visual_style_default: "cinematic, dramatic cinematic lighting, ultra-detailed, razor sharp focus, 8k, highly detailed, professional color grading, masterpiece"
+image_enhance: true               # API enriches the prompt for crisper images
+image_upscale: 2.0                # higher = smoother zoom, slower render
+image_sharpen: true               # LANCZOS + unsharp to fight low-res pixelation
+seconds_per_image: 2.5            # ~1 image per N seconds of narration (more = fewer)
+max_shots_per_scene: 3            # cap of images per scene
+
+# Captions
+caption_size_ratio: 0.098         # fraction of width (smaller = subtler)
+caption_y_ratio: 0.60
+caption_words_per_chunk: 1
+
+# Look
+enable_grade: true
+enable_vignette: true
+enable_progress_bar: true
+progress_bar_height: 7
+
+# Sound
+enable_music: true
+music_volume: 0.55
+enable_whoosh: true
+
+# Upload targets (also overridable via env SHORTS_PLATFORMS). Empty = never post.
+# platforms: ["youtube", "tiktok"]
+youtube_privacy: private          # private | unlisted | public

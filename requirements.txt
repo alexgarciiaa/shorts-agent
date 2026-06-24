@@ -1,0 +1,13 @@
+imageio-ffmpeg>=0.5
+pillow>=10
+mutagen>=1.47
+edge-tts>=7
+requests>=2.31
+pyyaml>=6
+# exact karaoke caption timing (word-level forced alignment)
+faster-whisper>=1.1
+# publishing (Fase 1)
+google-api-python-client>=2.100
+google-auth>=2.30
+google-auth-oauthlib>=1.2
+google-auth-httplib2>=0.2

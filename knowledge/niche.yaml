@@ -1,0 +1,19 @@
+# Seed subtopics for the "did you know" niche. The ideation step picks one that
+# hasn't been used recently, so topics stay varied. Add/remove freely.
+topic: "did you know / mind-blowing facts"
+subtopics:
+  - outer space and the universe
+  - the deep ocean
+  - the human body and brain
+  - rare and dangerous animals
+  - ancient history and lost civilizations
+  - psychology and the mind
+  - physics of everyday life
+  - extreme weather and natural phenomena
+  - food science
+  - technology and the internet
+  - money and the economy
+  - the human senses
+  - dreams and sleep
+  - microscopic life
+  - the planets and moons of our solar system
