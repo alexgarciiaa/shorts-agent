@@ -256,15 +256,17 @@ def _word_timings(cfg: Config, aligner, audio_path: str, cache: bool):
 
 
 def _resolve_music(ff: FFmpeg, cfg: Config):
-    """User-provided track wins; otherwise generate a default ambient bed."""
+    """A random user-provided track wins (drop several for variety); otherwise
+    generate the default lo-fi bed."""
     if not cfg.enable_music:
         return None
+    hits = []
     for ext in ("*.mp3", "*.m4a", "*.wav"):
-        hits = [h for h in glob.glob(os.path.join(cfg.music_dir, ext))
-                if os.path.basename(h) != "ambient_default.wav"]
-        if hits:
-            return hits[0]
-    return ensure_default_music(ff, os.path.join(cfg.music_dir, "ambient_default.wav"))
+        hits += [h for h in glob.glob(os.path.join(cfg.music_dir, ext))
+                 if "ambient_default" not in os.path.basename(h)]
+    if hits:
+        return random.choice(hits)
+    return ensure_default_music(ff, os.path.join(cfg.music_dir, "ambient_default_v2.wav"))
 
 
 def _slug(text: str, maxlen: int = 50) -> str:

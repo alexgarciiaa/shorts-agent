@@ -69,25 +69,32 @@ def ensure_whoosh(ff: FFmpeg, path: str) -> str:
 
 
 def ensure_default_music(ff: FFmpeg, path: str) -> str:
-    """Generate a tasteful royalty-free cinematic ambient pad once (a minor-chord
-    drone with tremolo + reverb). Replace with your own track for max engagement."""
+    """Generate a tasteful royalty-free lo-fi/cinematic bed once: an Am9 chord pad,
+    a vibrato shimmer note, and a pulsing sub-bass for gentle rhythm + reverb.
+    Drop your own .mp3 in assets/music/ for the best result."""
     if os.path.exists(path):
         return path
     os.makedirs(os.path.dirname(path), exist_ok=True)
     ff.run([
-        "-f", "lavfi", "-i", "sine=frequency=110:duration=45",   # root
-        "-f", "lavfi", "-i", "sine=frequency=164.81:duration=45",  # fifth
-        "-f", "lavfi", "-i", "sine=frequency=220:duration=45",   # octave
-        "-f", "lavfi", "-i", "sine=frequency=329.63:duration=45",  # shimmer
+        "-f", "lavfi", "-i", "sine=frequency=110:duration=60",     # A2 root
+        "-f", "lavfi", "-i", "sine=frequency=130.81:duration=60",  # C3 (minor 3rd)
+        "-f", "lavfi", "-i", "sine=frequency=164.81:duration=60",  # E3 (5th)
+        "-f", "lavfi", "-i", "sine=frequency=246.94:duration=60",  # B3 (9th -> warmth)
+        "-f", "lavfi", "-i", "sine=frequency=329.63:duration=60",  # E4 shimmer
+        "-f", "lavfi", "-i", "sine=frequency=55:duration=60",      # A1 sub-bass
         "-filter_complex",
-        # shimmer note gets vibrato for life; the bed gets a slow tremolo pulse + reverb
-        ("[3]vibrato=f=5:d=0.4,volume=0.4[sh];"
-         "[0][1][2][sh]amix=inputs=4,tremolo=f=0.5:d=0.35,"
-         "aecho=0.8:0.7:60|120:0.4|0.3,lowpass=f=1100,"
-         "afade=t=in:st=0:d=3,volume=2.6[a]"),
+        (
+            "[4]vibrato=f=5:d=0.6,volume=0.30[sh];"               # shimmer with life
+            "[5]tremolo=f=1.05:d=0.8,lowpass=f=120,volume=0.7[bass];"  # pulsing rhythm
+            "[0][1][2][3]amix=inputs=4,lowpass=f=950,volume=1.0[pad];"  # warm chord pad
+            "[pad][sh][bass]amix=inputs=3:normalize=0,"
+            "aecho=0.8:0.7:70|130:0.4|0.3,tremolo=f=0.2:d=0.25,"  # reverb + slow movement
+            "afade=t=in:st=0:d=3,afade=t=out:st=57:d=3,"
+            "alimiter=limit=0.95,volume=2.4[a]"
+        ),
         "-map", "[a]", path,
     ])
-    log.info("MUS  generated default ambient bed -> %s", path)
+    log.info("MUS  generated lo-fi bed -> %s", path)
     return path
 
 

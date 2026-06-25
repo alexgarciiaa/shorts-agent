@@ -3,6 +3,7 @@ out/
 __pycache__/
 *.pyc
 .pytest_cache/
+assets/music/ambient_default*.wav   # generated lo-fi bed (regenerated on run)
 .env
 # OAuth secrets — never commit
 client_secret*.json
