@@ -8,6 +8,7 @@ import logging
 import os
 import random
 import re
+import shutil
 import time
 from concurrent.futures import ThreadPoolExecutor
 
@@ -120,7 +121,14 @@ def run_pipeline(cfg: Config, dry_run: bool = True, use_llm: bool = True,
     log.info("== Stage 3b: images (%d to fetch, %d workers) ==", len(img_tasks), workers)
     if img_tasks:
         with ThreadPoolExecutor(max_workers=workers) as pool:
-            list(pool.map(lambda t: images.fetch(t[0], t[1], seed=t[2]), img_tasks))
+            ok_flags = list(pool.map(lambda t: images.fetch(t[0], t[1], seed=t[2]), img_tasks))
+        # never ship ugly gradient placeholders: swap any failure for a real image
+        good = [t[1] for t, ok in zip(img_tasks, ok_flags) if ok]
+        bad = [t[1] for t, ok in zip(img_tasks, ok_flags) if not ok]
+        if good and bad:
+            for path in bad:
+                shutil.copyfile(random.choice(good), path)
+            log.info("Swapped %d placeholder(s) for real images", len(bad))
 
     # 4-5. Captions (whisper align, sequential) + scene clips
     log.info("== Stage 4-5: captions + clips ==")

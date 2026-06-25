@@ -28,7 +28,9 @@ class PollinationsImageProvider:
         self.font_candidates = font_candidates
         self.token = token
 
-    def fetch(self, prompt: str, out_path: str, seed: int = 0) -> str:
+    def fetch(self, prompt: str, out_path: str, seed: int = 0) -> bool:
+        """Returns True if a real image was written, False if it fell back to a
+        local placeholder (the caller can then swap in a real image instead)."""
         full_prompt = f"{prompt}, {self.style}" if self.style else prompt
         quoted = urllib.parse.quote(full_prompt)
 
@@ -38,19 +40,19 @@ class PollinationsImageProvider:
                        f"&width={self.width}&height={self.height}&seed={seed}&nologo=true")
             if self._try(new_url, {"Authorization": f"Bearer {self.token}"}, out_path):
                 log.info("IMG  hi-res  %s", prompt[:46])
-                return out_path
+                return True
 
         # 2) free anonymous fallback (576x1024, rate-limited)
         old_url = (f"{self.OLD_BASE}{quoted}?width={self.width}&height={self.height}"
                    f"&nologo=true&model={self.model}&seed={seed}")
         if self._try(old_url, {}, out_path):
             log.info("IMG  free    %s", prompt[:46])
-            return out_path
+            return True
 
         # 3) local placeholder so the pipeline never hard-fails
         log.warning("IMG  fail -> placeholder for %r", prompt[:40])
         self._placeholder(prompt, out_path)
-        return out_path
+        return False
 
     def _try(self, url: str, headers: dict, out_path: str) -> bool:
         """Fetch one image; retry transient 429/5xx, give up on other 4xx (e.g. 402)."""
