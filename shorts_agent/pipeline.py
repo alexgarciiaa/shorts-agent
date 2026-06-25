@@ -17,8 +17,9 @@ from .infra.notify import notify
 from .infra.state import StateStore
 from .infra.trends import trending_seed
 from .models import VideoProject
-from .motion.assembly import (FFmpeg, build_outro_clip, build_scene_clip,
-                              concat_clips, ensure_default_music, ensure_whoosh)
+from .motion.assembly import (FFmpeg, build_intro_clip, build_outro_clip,
+                              build_scene_clip, concat_clips, ensure_default_music,
+                              ensure_whoosh)
 from .motion.captions import (CaptionRenderer, chunk_caption, chunks_from_timings,
                               render_text_block)
 from .motion.thumbnail import make_thumbnail
@@ -153,6 +154,20 @@ def run_pipeline(cfg: Config, dry_run: bool = True, use_llm: bool = True,
         clip_durations.append(
             (scene.audio_duration or scene.duration_hint_s) + cfg.scene_tail_seconds)
 
+    # 5a. Brand thumbnail (used both as the YouTube thumbnail AND the intro card)
+    thumb_work = None
+    if (cfg.enable_thumbnail or cfg.enable_intro_card) and (project.title or project.topic):
+        thumb_work = os.path.join(cfg.work_dir, "thumbnail.jpg")
+        make_thumbnail(project.title or project.topic, thumb_work,
+                       cfg.width, cfg.height, cfg.caption_font_candidates)
+
+    # 5a-intro. Branded title card as the FIRST frame (Shorts feed shows frame 1)
+    if cfg.enable_intro_card and thumb_work:
+        intro_clip = os.path.join(cfg.work_dir, "clip_intro.mp4")
+        build_intro_clip(ff, cfg, thumb_work, intro_clip)
+        clip_paths.insert(0, intro_clip)
+        clip_durations.insert(0, cfg.intro_card_seconds)
+
     # 5a-bis. Outro CTA card (channel-level text, NOT the per-video topic)
     if cfg.enable_outro and project.scenes and project.scenes[-1].image_paths:
         cta_png = os.path.join(cfg.work_dir, "cta.png")
@@ -177,11 +192,10 @@ def run_pipeline(cfg: Config, dry_run: bool = True, use_llm: bool = True,
     concat_clips(ff, clip_paths, clip_durations, project.output_path, cfg,
                  music_path=music, whoosh_path=whoosh)
 
-    # 5c. Custom thumbnail (bold black title on brand-yellow background)
-    if cfg.enable_thumbnail and (project.title or project.topic):
+    # 5c. Thumbnail for upload (copy the card we already generated)
+    if cfg.enable_thumbnail and thumb_work:
         project.thumbnail_path = os.path.join(out_folder, "thumbnail.jpg")
-        make_thumbnail(project.title or project.topic, project.thumbnail_path,
-                       cfg.width, cfg.height, cfg.caption_font_candidates)
+        shutil.copyfile(thumb_work, project.thumbnail_path)
 
     # 5d. Structured metadata manifest
     _write_metadata(project, out_folder, cfg, sum(clip_durations))

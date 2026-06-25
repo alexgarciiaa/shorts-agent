@@ -181,6 +181,35 @@ def build_scene_clip(ff: FFmpeg, scene: Scene, captions: List[CaptionItem],
     return scene.clip_path
 
 
+def build_intro_clip(ff: FFmpeg, cfg: Config, image_path: str, out_path: str) -> str:
+    """Short branded title card (the thumbnail) as the opening frame, with a quick
+    punch-in. Silent (the music bed carries over it in concat)."""
+    dur = cfg.intro_card_seconds
+    frames = max(2, round(dur * cfg.fps))
+    z = _esc(f"max(1.12-{0.12 / frames:.6f}*on,1.0)")   # punch-in: 1.12 -> 1.0
+    inputs = [
+        "-i", image_path,
+        "-f", "lavfi", "-t", f"{dur:.3f}",
+        "-i", "anullsrc=channel_layout=mono:sample_rate=48000",
+    ]
+    graph = (
+        f"[0:v]scale={cfg.width}:{cfg.height}:force_original_aspect_ratio=increase,"
+        f"crop={cfg.width}:{cfg.height},"
+        f"zoompan=z='{z}':d={frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
+        f"s={cfg.width}x{cfg.height}:fps={cfg.fps},setsar=1[v]"
+    )
+    ff.run([
+        *inputs, "-filter_complex", graph,
+        "-map", "[v]", "-map", "1:a",
+        "-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p",
+        "-r", str(cfg.fps),
+        "-c:a", "aac", "-b:a", "160k", "-ar", "48000",
+        "-t", f"{dur:.3f}", out_path,
+    ])
+    log.info("CLIP %5.2fs  intro card", dur)
+    return out_path
+
+
 def build_outro_clip(ff: FFmpeg, cfg: Config, image_path: str, cta_png: str,
                      out_path: str) -> str:
     """A short closing card: dimmed last image + centered CTA text (silent;

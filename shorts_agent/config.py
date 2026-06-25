@@ -80,7 +80,11 @@ class Config:
     enable_progress_bar: bool = True        # thin growing bar at the top
     progress_bar_height: int = 7
 
-    # --- outro CTA + thumbnail ---
+    # --- intro / outro / thumbnail ---
+    # Brand title card as the FIRST ~0.6s (Shorts feed uses frame 1, not the
+    # uploaded thumbnail). Set False for a hook-first opening.
+    enable_intro_card: bool = True
+    intro_card_seconds: float = 0.7
     enable_outro: bool = True               # closing "follow for more" card
     outro_seconds: float = 1.8
     # Channel-level CTA — topic-agnostic so it never mismatches the video's subject.
