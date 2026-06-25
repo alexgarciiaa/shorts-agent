@@ -160,12 +160,11 @@ def run_pipeline(cfg: Config, dry_run: bool = True, use_llm: bool = True,
     concat_clips(ff, clip_paths, clip_durations, project.output_path, cfg,
                  music_path=music, whoosh_path=whoosh)
 
-    # 5c. Custom thumbnail
-    if cfg.enable_thumbnail and project.scenes and project.scenes[0].image_paths:
+    # 5c. Custom thumbnail (bold black title on brand-yellow background)
+    if cfg.enable_thumbnail and (project.title or project.topic):
         project.thumbnail_path = os.path.join(out_folder, "thumbnail.jpg")
-        make_thumbnail(project.scenes[0].image_paths[0], project.topic,
-                       project.thumbnail_path, cfg.width, cfg.height,
-                       cfg.caption_font_candidates)
+        make_thumbnail(project.title or project.topic, project.thumbnail_path,
+                       cfg.width, cfg.height, cfg.caption_font_candidates)
 
     # 5d. Structured metadata manifest
     _write_metadata(project, out_folder, cfg, sum(clip_durations))

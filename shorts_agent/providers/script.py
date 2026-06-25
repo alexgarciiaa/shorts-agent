@@ -30,8 +30,10 @@ Write a {n}-scene short. The spoken NARRATION, title and description must be in 
 Topic / seed idea: {seed}.
 
 WRITING RULES (make it genuinely interesting, not generic):
-- Scene 1 is a HOOK that makes scrolling impossible: a bold, counter-intuitive or
-  shocking claim, or an open curiosity gap. No "Did you know" cliché openers.
+- Scene 1 is a short INTRO HOOK that opens with "Did you know..." and teases the
+  topic to stop the scroll, WITHOUT revealing a fact yet
+  (e.g. "Did you know your body does something insane every single night?").
+- Scenes 2 onward deliver the actual surprising facts — one fact per scene.
 - Pick FRESH, surprising facts most people DON'T already know. Avoid the obvious
   textbook ones. Each fact must have a concrete, specific, jaw-dropping detail
   (a number, comparison, or vivid consequence).

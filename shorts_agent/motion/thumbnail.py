@@ -1,49 +1,51 @@
-"""Custom thumbnail: a striking scene image + a big bold title, with top/bottom
-darkening so the text pops. Vertical 1080x1920 (YouTube accepts it for Shorts)."""
+"""Custom thumbnail: bold black title centered on a solid brand-yellow background.
+High contrast = high click-through. Vertical 1080x1920 (YouTube accepts it for Shorts)."""
 from __future__ import annotations
 
 import logging
 import os
+import re
 from typing import List
 
 from PIL import Image, ImageDraw, ImageFont
 
 log = logging.getLogger(__name__)
 
+BG = (255, 230, 61)    # brand yellow #FFE63D
+FG = (0, 0, 0)         # black text
 
-def make_thumbnail(image_path: str, title: str, out_path: str, width: int,
-                   height: int, font_candidates: tuple) -> str:
-    base = Image.open(image_path).convert("RGB").resize((width, height))
 
-    # darken top & bottom thirds with vertical gradients for legibility
-    overlay = Image.new("L", (1, height), 0)
-    px = overlay.load()
-    for y in range(height):
-        r = y / height
-        if r < 0.33:
-            px[0, y] = int(150 * (1 - r / 0.33))
-        elif r > 0.6:
-            px[0, y] = int(170 * ((r - 0.6) / 0.4))
-        else:
-            px[0, y] = 0
-    shade = overlay.resize((width, height))
-    black = Image.new("RGB", (width, height), (0, 0, 0))
-    base = Image.composite(black, base, shade)
+def make_thumbnail(title: str, out_path: str, width: int, height: int,
+                   font_candidates: tuple, bg=BG, fg=FG) -> str:
+    img = Image.new("RGB", (width, height), bg)
+    draw = ImageDraw.Draw(img)
 
-    draw = ImageDraw.Draw(base)
-    font = _font(font_candidates, int(width * 0.115))
-    title = (title or "DID YOU KNOW?").upper().replace("#SHORTS", "").strip()
-    lines = _wrap(draw, title, font, width * 0.88)[:4]
-    stroke = max(8, int(width * 0.012))
-    y = height * 0.74
+    text = re.sub(r"#\w+", "", title or "DID YOU KNOW?")          # drop hashtags
+    text = text.encode("ascii", "ignore").decode().upper().strip()  # drop emojis
+    if not text:
+        text = "DID YOU KNOW?"
+
+    font = _fit_font(draw, text, font_candidates, width, height)
+    lines = _wrap(draw, text, font, width * 0.86)
+    line_h = font.size * 1.08
+    y = (height - line_h * len(lines)) / 2
     for line in lines:
-        draw.text((width / 2, y), line, font=font, fill=(255, 230, 61, 255),  # brand #FFE63D
-                  stroke_width=stroke, stroke_fill=(0, 0, 0, 255), anchor="mm")
-        y += font.size * 1.12
+        draw.text((width / 2, y + line_h / 2), line, font=font, fill=fg, anchor="mm")
+        y += line_h
 
-    base.save(out_path, quality=90)
+    img.save(out_path, quality=92)
     log.info("THUMB -> %s", out_path)
     return out_path
+
+
+def _fit_font(draw, text, font_candidates, width, height):
+    """Shrink the font until the wrapped title fits comfortably on screen."""
+    for ratio in (0.15, 0.135, 0.12, 0.105, 0.09):
+        font = _font(font_candidates, int(width * ratio))
+        lines = _wrap(draw, text, font, width * 0.86)
+        if len(lines) * font.size * 1.08 <= height * 0.8 and len(lines) <= 6:
+            return font
+    return _font(font_candidates, int(width * 0.09))
 
 
 def _font(candidates: tuple, size: int) -> ImageFont.FreeTypeFont:
