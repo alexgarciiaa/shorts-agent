@@ -74,7 +74,6 @@ def run_pipeline(cfg: Config, dry_run: bool = True, use_llm: bool = True,
     images = PollinationsImageProvider(cfg.width, cfg.height, cfg.image_model,
                                        style=style,
                                        font_candidates=cfg.caption_font_candidates,
-                                       enhance=cfg.image_enhance,
                                        token=cfg.pollinations_token)
     captions = CaptionRenderer(cfg.width, cfg.height, cfg.caption_font_candidates,
                                y_ratio=cfg.caption_y_ratio,

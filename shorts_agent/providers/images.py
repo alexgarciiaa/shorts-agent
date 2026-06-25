@@ -13,55 +13,67 @@ log = logging.getLogger(__name__)
 
 
 class PollinationsImageProvider:
-    BASE = "https://image.pollinations.ai/prompt/"
+    # gen.* needs a Bearer key and costs Pollen but gives native 1080x1920;
+    # image.* is free/anonymous but caps at 576x1024 and rate-limits. We try the
+    # paid one first (while Pollen lasts) and fall back to the free one -> always $0.
+    NEW_BASE = "https://gen.pollinations.ai/image/"
+    OLD_BASE = "https://image.pollinations.ai/prompt/"
 
     def __init__(self, width: int, height: int, model: str = "flux",
-                 style: str = "", font_candidates: tuple = (), enhance: bool = True,
-                 token: str = ""):
+                 style: str = "", font_candidates: tuple = (), token: str = ""):
         self.width = width
         self.height = height
         self.model = model
         self.style = style
         self.font_candidates = font_candidates
-        self.enhance = enhance
         self.token = token
 
     def fetch(self, prompt: str, out_path: str, seed: int = 0) -> str:
         full_prompt = f"{prompt}, {self.style}" if self.style else prompt
-        url = (
-            self.BASE
-            + urllib.parse.quote(full_prompt)
-            + f"?width={self.width}&height={self.height}&nologo=true"
-            + f"&model={self.model}&seed={seed}"
-            + ("&enhance=true" if self.enhance else "")
-            + (f"&token={self.token}" if self.token else "")
-        )
-        last = "unknown"
-        for i in range(4):  # retry rate-limits / transient errors with backoff
-            try:
-                resp = requests.get(url, timeout=60)
-                if resp.status_code == 429 or resp.status_code >= 500:
-                    last = f"HTTP {resp.status_code}"
-                    time.sleep(2.0 * (i + 1))
-                    continue
-                resp.raise_for_status()
-                if not resp.content or len(resp.content) < 2000:
-                    raise ValueError("empty/too-small image response")
-                with open(out_path, "wb") as fh:
-                    fh.write(resp.content)
-                with Image.open(out_path) as im:  # validate it is a real image
-                    im.verify()
-                log.info("IMG  ok    %s", prompt[:48])
+        quoted = urllib.parse.quote(full_prompt)
+
+        # 1) high-res via the paid API (only if we have a key + Pollen balance)
+        if self.token:
+            new_url = (f"{self.NEW_BASE}{quoted}?model={self.model}"
+                       f"&width={self.width}&height={self.height}&seed={seed}&nologo=true")
+            if self._try(new_url, {"Authorization": f"Bearer {self.token}"}, out_path):
+                log.info("IMG  hi-res  %s", prompt[:46])
                 return out_path
-            except requests.RequestException as exc:
-                last = type(exc).__name__
-                time.sleep(2.0 * (i + 1))
-            except Exception as exc:  # noqa: BLE001 - bad image data, don't retry
-                last = str(exc)
-                break
-        log.warning("IMG  fail (%s) -> placeholder for %r", last, prompt[:40])
+
+        # 2) free anonymous fallback (576x1024, rate-limited)
+        old_url = (f"{self.OLD_BASE}{quoted}?width={self.width}&height={self.height}"
+                   f"&nologo=true&model={self.model}&seed={seed}")
+        if self._try(old_url, {}, out_path):
+            log.info("IMG  free    %s", prompt[:46])
+            return out_path
+
+        # 3) local placeholder so the pipeline never hard-fails
+        log.warning("IMG  fail -> placeholder for %r", prompt[:40])
         self._placeholder(prompt, out_path)
         return out_path
+
+    def _try(self, url: str, headers: dict, out_path: str) -> bool:
+        """Fetch one image; retry transient 429/5xx, give up on other 4xx (e.g. 402)."""
+        for i in range(3):
+            try:
+                resp = requests.get(url, headers=headers, timeout=60)
+                if resp.status_code == 429 or resp.status_code >= 500:
+                    time.sleep(2.0 * (i + 1))
+                    continue
+                if resp.status_code != 200:
+                    return False   # 402 no-balance / other 4xx -> fall back
+                if not resp.content or len(resp.content) < 2000:
+                    return False
+                with open(out_path, "wb") as fh:
+                    fh.write(resp.content)
+                with Image.open(out_path) as im:
+                    im.verify()
+                return True
+            except requests.RequestException:
+                time.sleep(2.0 * (i + 1))
+            except Exception:  # noqa: BLE001 - bad image data
+                return False
+        return False
 
     def _placeholder(self, prompt: str, out_path: str) -> None:
         img = Image.new("RGB", (self.width, self.height))
