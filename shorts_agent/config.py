@@ -15,9 +15,9 @@ class Config:
 
     # --- voice (edge-tts) ---
     tts_voice: str = "en-US-AndrewMultilingualNeural"  # warm, natural, human-sounding
-    tts_rate: str = "+11%"                   # snappy "shorts" pacing
+    tts_rate: str = "+15%"                   # snappy "shorts" pacing
     tts_pitch: str = "+0Hz"
-    scene_tail_seconds: float = 0.10         # silence held after each scene's speech
+    scene_tail_seconds: float = 0.05         # silence held after each scene's speech
 
     # --- images (Pollinations) ---
     image_model: str = "flux"
@@ -71,6 +71,7 @@ class Config:
     whisper_model: str = "base"             # tiny|base|small — bigger = more accurate, slower
     caption_fill_color: tuple = (244, 241, 232, 255)    # brand off-white #F4F1E8
     caption_emphasis_color: tuple = (255, 230, 61, 255)  # brand yellow #FFE63D
+    caption_emphasis_min_len: int = 5    # highlight content words >= this many letters (+ numbers)
     caption_shadow: bool = True
 
     # --- cinematic look ---

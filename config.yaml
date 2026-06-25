@@ -24,8 +24,8 @@ enable_trends: true
 
 # Voice (any edge-tts voice id)
 tts_voice: en-US-AndrewMultilingualNeural   # warm, natural, human-sounding
-tts_rate: "+11%"                   # snappier pacing (a bit faster)
-scene_tail_seconds: 0.10          # pause held after each scene (lower = tighter)
+tts_rate: "+15%"                   # snappier pacing (a bit faster)
+scene_tail_seconds: 0.05          # pause held after each scene (lower = tighter)
 
 # Visual style shared by all images (keeps a cohesive look)
 visual_style_default: "cinematic, dramatic cinematic lighting, ultra-detailed, razor sharp focus, 8k, highly detailed, professional color grading, masterpiece"
@@ -41,6 +41,7 @@ caption_sync: estimate            # "estimate" (fast, reliable) | "whisper" (exa
 caption_size_ratio: 0.098         # fraction of width (smaller = subtler)
 caption_y_ratio: 0.60
 caption_words_per_chunk: 1
+caption_emphasis_min_len: 5       # words >= N letters go yellow (lower = more yellow)
 
 # Look
 enable_grade: true

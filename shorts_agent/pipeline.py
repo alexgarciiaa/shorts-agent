@@ -81,7 +81,8 @@ def run_pipeline(cfg: Config, dry_run: bool = True, use_llm: bool = True,
                                fill=cfg.caption_fill_color,
                                emphasis=cfg.caption_emphasis_color,
                                shadow=cfg.caption_shadow,
-                               size_ratio=cfg.caption_size_ratio)
+                               size_ratio=cfg.caption_size_ratio,
+                               emphasis_min_len=cfg.caption_emphasis_min_len)
     aligner = WhisperAligner(cfg.whisper_model) if cfg.caption_sync == "whisper" else None
 
     whoosh = ensure_whoosh(ff, os.path.join(cfg.sfx_dir, "whoosh.wav")) \

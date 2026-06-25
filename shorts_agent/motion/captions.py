@@ -115,23 +115,36 @@ def render_text_block(text: str, out_path: str, width: int, font_candidates: tup
     return out_path, w, h
 
 
-def _is_emphasis(text: str) -> bool:
+# Common long-but-unremarkable words that should stay white even though they're long.
+_STOPWORDS = {
+    "ABOUT", "THERE", "THEIR", "THESE", "THOSE", "WHICH", "WOULD", "COULD", "SHOULD",
+    "WHERE", "WHILE", "BEING", "AFTER", "BEFORE", "BECAUSE", "THROUGH", "ITSELF",
+    "REALLY", "ALMOST", "USUALLY", "ACTUALLY", "SOMETHING", "ANOTHER", "BETWEEN",
+}
+
+
+def _is_emphasis(text: str, min_len: int = 5) -> bool:
+    """Highlight numbers, designated power words, and any content word that is at
+    least `min_len` letters (excluding common long function words)."""
     if any(c.isdigit() for c in text):
         return True
-    cleaned = text.strip(".,!?;:").upper()
-    return cleaned in _POWER_WORDS
+    cleaned = text.strip(".,!?;:'\"-").upper()
+    if cleaned in _POWER_WORDS:
+        return True
+    return len(cleaned) >= min_len and cleaned not in _STOPWORDS
 
 
 class CaptionRenderer:
     def __init__(self, width: int, height: int, font_candidates: tuple,
                  y_ratio: float = 0.60, fill=(255, 255, 255, 255),
                  emphasis=(255, 221, 0, 255), shadow: bool = True,
-                 size_ratio: float = 0.098):
+                 size_ratio: float = 0.098, emphasis_min_len: int = 5):
         self.width = width
         self.height = height
         self.y_ratio = y_ratio
         self.fill = fill
         self.emphasis = emphasis
+        self.emphasis_min_len = emphasis_min_len
         self.shadow = shadow
         self.stroke = max(6, int(width * size_ratio * 0.1))
         self.font = self._load_font(font_candidates, size=int(width * size_ratio))
@@ -149,7 +162,7 @@ class CaptionRenderer:
     def render(self, text: str, out_path: str) -> Tuple[str, int, int]:
         """Render a snug caption PNG. Returns (path, width_px, height_px)."""
         text = text.upper()
-        fill = self.emphasis if _is_emphasis(text) else self.fill
+        fill = self.emphasis if _is_emphasis(text, self.emphasis_min_len) else self.fill
 
         measure = ImageDraw.Draw(Image.new("RGBA", (4, 4)))
         l, t, r, b = measure.textbbox((0, 0), text, font=self.font,

@@ -27,12 +27,14 @@ def test_chunk_caption_empty():
     assert chunk_caption("", 3.0) == []
 
 
-def test_is_emphasis_numbers_and_power_words():
+def test_is_emphasis_numbers_power_words_and_long_words():
     assert _is_emphasis("5,000")
     assert _is_emphasis("BILLION")
-    assert _is_emphasis("most")          # case-insensitive
-    assert not _is_emphasis("the")
-    assert not _is_emphasis("planet")
+    assert _is_emphasis("most")           # power word, case-insensitive
+    assert _is_emphasis("planet")         # content word >= 5 letters -> highlighted
+    assert not _is_emphasis("the")        # short function word
+    assert not _is_emphasis("your")       # short function word
+    assert not _is_emphasis("which")      # long but a stopword
 
 
 def test_chunks_from_timings_uses_real_times():
