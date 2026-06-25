@@ -116,9 +116,10 @@ def run_pipeline(cfg: Config, dry_run: bool = True, use_llm: bool = True,
             if not (cache and _exists(path)):
                 img_tasks.append((prompt, path, seed))
 
-    log.info("== Stage 3b: images (parallel, %d to fetch) ==", len(img_tasks))
+    workers = max(1, cfg.image_workers)
+    log.info("== Stage 3b: images (%d to fetch, %d workers) ==", len(img_tasks), workers)
     if img_tasks:
-        with ThreadPoolExecutor(max_workers=4) as pool:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
             list(pool.map(lambda t: images.fetch(t[0], t[1], seed=t[2]), img_tasks))
 
     # 4-5. Captions (whisper align, sequential) + scene clips

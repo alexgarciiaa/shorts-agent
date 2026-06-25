@@ -40,9 +40,11 @@ class Config:
         "dynamic dutch angle, motion",
         "symmetrical centered composition",
     )
-    # more images = more visual variety: ~1 image per N seconds of narration, capped.
-    seconds_per_image: float = 2.5
-    max_shots_per_scene: int = 3
+    # ~1 image per N seconds of narration, capped. Higher N = fewer images (faster,
+    # gentler on the free image API). Lower it once you have a POLLINATIONS_TOKEN.
+    seconds_per_image: float = 5.0
+    max_shots_per_scene: int = 2
+    image_workers: int = 1                  # concurrent image fetches; 1 avoids 429 on the free tier
 
     # --- niche / ideation ---
     language: str = "en"                       # "en", "es", ... drives script + voice
@@ -65,7 +67,7 @@ class Config:
     )
     caption_size_ratio: float = 0.098       # font size as fraction of width
     caption_y_ratio: float = 0.60           # vertical position (0=top, 1=bottom)
-    caption_sync: str = "whisper"           # "whisper" (exact word timing) | "estimate"
+    caption_sync: str = "estimate"          # "estimate" (fast, no model) | "whisper" (exact, heavy)
     whisper_model: str = "base"             # tiny|base|small — bigger = more accurate, slower
     caption_fill_color: tuple = (244, 241, 232, 255)    # brand off-white #F4F1E8
     caption_emphasis_color: tuple = (255, 230, 61, 255)  # brand yellow #FFE63D

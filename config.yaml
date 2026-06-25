@@ -32,10 +32,12 @@ visual_style_default: "cinematic, dramatic cinematic lighting, ultra-detailed, r
 image_enhance: false              # OFF: very slow (~45s/img) and no resolution gain
 image_upscale: 2.0                # higher = smoother zoom, slower render
 image_sharpen: true               # LANCZOS + unsharp to fight low-res pixelation
-seconds_per_image: 2.5            # ~1 image per N seconds of narration (more = fewer)
-max_shots_per_scene: 3            # cap of images per scene
+seconds_per_image: 5.0            # higher = fewer images (gentler on the free image API)
+max_shots_per_scene: 2            # cap of images per scene
+image_workers: 1                  # concurrent fetches; keep 1 without a POLLINATIONS_TOKEN (else 429)
 
 # Captions
+caption_sync: estimate            # "estimate" (fast, reliable) | "whisper" (exact, heavy)
 caption_size_ratio: 0.098         # fraction of width (smaller = subtler)
 caption_y_ratio: 0.60
 caption_words_per_chunk: 1

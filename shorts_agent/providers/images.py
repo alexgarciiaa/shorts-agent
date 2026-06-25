@@ -3,6 +3,7 @@ locally-rendered gradient placeholder so the pipeline never hard-fails."""
 from __future__ import annotations
 
 import logging
+import time
 import urllib.parse
 
 import requests
@@ -35,22 +36,32 @@ class PollinationsImageProvider:
             + ("&enhance=true" if self.enhance else "")
             + (f"&token={self.token}" if self.token else "")
         )
-        try:
-            resp = requests.get(url, timeout=60)
-            resp.raise_for_status()
-            if not resp.content or len(resp.content) < 2000:
-                raise ValueError("empty/too-small image response")
-            with open(out_path, "wb") as fh:
-                fh.write(resp.content)
-            # validate it is a real image
-            with Image.open(out_path) as im:
-                im.verify()
-            log.info("IMG  ok    %s", prompt[:48])
-            return out_path
-        except Exception as exc:  # noqa: BLE001 - resilience by design
-            log.warning("IMG  fail (%s) -> placeholder for %r", exc, prompt[:40])
-            self._placeholder(prompt, out_path)
-            return out_path
+        last = "unknown"
+        for i in range(4):  # retry rate-limits / transient errors with backoff
+            try:
+                resp = requests.get(url, timeout=60)
+                if resp.status_code == 429 or resp.status_code >= 500:
+                    last = f"HTTP {resp.status_code}"
+                    time.sleep(2.0 * (i + 1))
+                    continue
+                resp.raise_for_status()
+                if not resp.content or len(resp.content) < 2000:
+                    raise ValueError("empty/too-small image response")
+                with open(out_path, "wb") as fh:
+                    fh.write(resp.content)
+                with Image.open(out_path) as im:  # validate it is a real image
+                    im.verify()
+                log.info("IMG  ok    %s", prompt[:48])
+                return out_path
+            except requests.RequestException as exc:
+                last = type(exc).__name__
+                time.sleep(2.0 * (i + 1))
+            except Exception as exc:  # noqa: BLE001 - bad image data, don't retry
+                last = str(exc)
+                break
+        log.warning("IMG  fail (%s) -> placeholder for %r", last, prompt[:40])
+        self._placeholder(prompt, out_path)
+        return out_path
 
     def _placeholder(self, prompt: str, out_path: str) -> None:
         img = Image.new("RGB", (self.width, self.height))
