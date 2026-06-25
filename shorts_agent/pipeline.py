@@ -9,6 +9,7 @@ import os
 import random
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 from .config import Config
 from .infra.notify import notify
@@ -86,21 +87,22 @@ def run_pipeline(cfg: Config, dry_run: bool = True, use_llm: bool = True,
     whoosh = ensure_whoosh(ff, os.path.join(cfg.sfx_dir, "whoosh.wav")) \
         if cfg.enable_whoosh else None
 
-    clip_paths, clip_durations = [], []
-    for scene in project.scenes:
-        # 3a. Voice (cached by voice+rate+text)
+    # 3a. Synthesize ALL voices in parallel (network-bound; ~5s each)
+    def _do_tts(scene):
         akey = _hash(cfg.tts_voice, cfg.tts_rate, scene.narration)
         scene.audio_path = os.path.join(cfg.cache_dir, f"tts_{akey}.mp3")
         if cache and _exists(scene.audio_path):
             scene.audio_duration = tts.duration(scene.audio_path)
-            log.info("TTS  cached  %s", scene.narration[:48])
         else:
             scene.audio_duration = tts.synth(scene.narration, scene.audio_path)
 
-        # 3a-bis. Exact word timings for karaoke captions (whisper, cached as sidecar)
-        word_timings = _word_timings(cfg, aligner, scene.audio_path, cache)
+    log.info("== Stage 3: voices (parallel) ==")
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(_do_tts, project.scenes))
 
-        # 3b. Images — more shots on longer scenes (more visuals, more variety)
+    # 3b. Fetch ALL images in parallel (network-bound; ~45s each on CI -> the bottleneck)
+    img_tasks = []  # (prompt, path, seed)
+    for scene in project.scenes:
         n_shots = max(1, min(cfg.max_shots_per_scene,
                              round(scene.audio_duration / cfg.seconds_per_image)))
         scene.image_paths = []
@@ -110,13 +112,20 @@ def run_pipeline(cfg: Config, dry_run: bool = True, use_llm: bool = True,
             seed = 1000 + scene.id * 10 + j
             ikey = _hash(prompt, style, str(seed), f"{cfg.width}x{cfg.height}")
             path = os.path.join(cfg.cache_dir, f"img_{ikey}.png")
-            if not (cache and _exists(path)):
-                images.fetch(prompt, path, seed=seed)
-            else:
-                log.info("IMG  cached  %s", prompt[:48])
             scene.image_paths.append(path)
+            if not (cache and _exists(path)):
+                img_tasks.append((prompt, path, seed))
 
-        # 4. Captions — use exact per-word timings when available, else estimate
+    log.info("== Stage 3b: images (parallel, %d to fetch) ==", len(img_tasks))
+    if img_tasks:
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            list(pool.map(lambda t: images.fetch(t[0], t[1], seed=t[2]), img_tasks))
+
+    # 4-5. Captions (whisper align, sequential) + scene clips
+    log.info("== Stage 4-5: captions + clips ==")
+    clip_paths, clip_durations = [], []
+    for scene in project.scenes:
+        word_timings = _word_timings(cfg, aligner, scene.audio_path, cache)
         if word_timings:
             scene.caption_chunks = chunks_from_timings(
                 word_timings, cfg.caption_words_per_chunk, scene.audio_duration)
@@ -129,7 +138,6 @@ def run_pipeline(cfg: Config, dry_run: bool = True, use_llm: bool = True,
             _, cw, ch = captions.render(text, png)
             caption_items.append((png, cw, ch, start, end))
 
-        # 5. Scene clip (varied Ken Burns + grade + bouncing captions)
         scene.clip_path = os.path.join(cfg.work_dir, f"clip_{scene.id}.mp4")
         build_scene_clip(ff, scene, caption_items, cfg)
         clip_paths.append(scene.clip_path)
