@@ -15,7 +15,7 @@ class Config:
 
     # --- voice (edge-tts) ---
     tts_voice: str = "en-US-AndrewMultilingualNeural"  # warm, natural, human-sounding
-    tts_rate: str = "+15%"                   # snappy "shorts" pacing
+    tts_rate: str = "+20%"                   # snappy "shorts" pacing
     tts_pitch: str = "+0Hz"
     scene_tail_seconds: float = 0.05         # silence held after each scene's speech
 

@@ -24,7 +24,7 @@ enable_trends: true
 
 # Voice (any edge-tts voice id)
 tts_voice: en-US-AndrewMultilingualNeural   # warm, natural, human-sounding
-tts_rate: "+15%"                   # snappier pacing (a bit faster)
+tts_rate: "+20%"                   # snappier pacing (~33s videos)
 scene_tail_seconds: 0.05          # pause held after each scene (lower = tighter)
 
 # Visual style shared by all images (keeps a cohesive look)
