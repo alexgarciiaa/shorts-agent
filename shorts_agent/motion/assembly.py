@@ -38,11 +38,23 @@ class FFmpeg:
     def __init__(self):
         self.exe = imageio_ffmpeg.get_ffmpeg_exe()
 
-    def run(self, args: List[str]) -> None:
-        cmd = [self.exe, "-y", "-hide_banner", "-loglevel", "error", *args]
-        proc = subprocess.run(cmd, capture_output=True, text=True,
-                              encoding="utf-8", errors="replace")
-        if proc.returncode != 0:
+    def run(self, args: List[str], timeout: int = 300) -> None:
+        # -threads 2 keeps memory/CPU spikes down; a timeout + one retry turns an
+        # occasional ffmpeg hang into a recovery instead of the runner SIGTERM (143).
+        cmd = [self.exe, "-y", "-hide_banner", "-loglevel", "error", "-threads", "2", *args]
+        for attempt in range(2):
+            try:
+                proc = subprocess.run(cmd, capture_output=True, text=True,
+                                      encoding="utf-8", errors="replace", timeout=timeout)
+            except subprocess.TimeoutExpired:
+                if attempt == 0:
+                    log.warning("ffmpeg hung > %ss, retrying once...", timeout)
+                    continue
+                raise RuntimeError("ffmpeg timed out twice (bad input?)")
+            if proc.returncode == 0:
+                return
+            if attempt == 0:
+                continue
             tail = (proc.stderr or "").strip()[-1800:]
             raise RuntimeError(f"ffmpeg failed (exit {proc.returncode}):\n{tail}")
 

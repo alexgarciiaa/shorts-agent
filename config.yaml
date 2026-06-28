@@ -33,13 +33,13 @@ image_upscale: 1.0                # 1.0 = render zoom at native 1080 (4x less RA
 image_sharpen: true               # LANCZOS + unsharp for extra crispness
 seconds_per_image: 2.5            # more images (sk_ token has no rate limit)
 max_shots_per_scene: 2            # cap per scene (fewer segments per ffmpeg call = less RAM)
-image_workers: 4                  # parallel fetches (sk_ token = no 429)
+image_workers: 1                  # sequential = gentlest on the runner (stability > speed)
 
 # Captions
 caption_sync: estimate            # estimate = light/reliable on CI (whisper OOMs the runner -> exit 143)
 caption_size_ratio: 0.098         # fraction of width (smaller = subtler)
 caption_y_ratio: 0.60
-caption_words_per_chunk: 1
+caption_words_per_chunk: 2        # 2 words/chunk = half the overlay inputs per clip (lighter ffmpeg)
 caption_emphasis_min_len: 5       # words >= N letters go yellow (lower = more yellow)
 
 # Look
