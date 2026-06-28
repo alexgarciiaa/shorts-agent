@@ -27,10 +27,10 @@ CaptionItem = Tuple[str, int, int, float, float]
 
 # Ken Burns presets cycled per scene: (zoom_start, zoom_end, pan_x, pan_y)
 _MOTION = [
-    (1.00, 1.12, 0.5, 0.5),   # slow zoom-in, centered
-    (1.16, 1.00, 0.5, 0.4),   # punch-in, settles (impact on the cut)
-    (1.12, 1.00, 0.3, 0.5),   # zoom-out drifting left
-    (1.00, 1.14, 0.7, 0.6),   # slow zoom-in drifting right
+    (1.00, 1.25, 0.5, 0.5),   # zoom-in, centered
+    (1.28, 1.00, 0.5, 0.4),   # punch-in, settles (impact on the cut)
+    (1.22, 1.00, 0.3, 0.5),   # zoom-out drifting left
+    (1.00, 1.27, 0.7, 0.6),   # zoom-in drifting right
 ]
 
 

@@ -31,12 +31,12 @@ scene_tail_seconds: 0.05          # pause held after each scene (lower = tighter
 visual_style_default: "cinematic, dramatic cinematic lighting, ultra-detailed, razor sharp focus, 8k, highly detailed, professional color grading, masterpiece"
 image_upscale: 2.0                # higher = smoother zoom, slower render
 image_sharpen: true               # LANCZOS + unsharp for extra crispness
-seconds_per_image: 4.0            # ~10 images/video (fits the daily Pollen budget in hi-res)
+seconds_per_image: 2.5            # more images (sk_ token has no rate limit)
 max_shots_per_scene: 3            # cap of images per scene
-image_workers: 2                  # parallel fetches (safe for both the paid + free fallback)
+image_workers: 4                  # parallel fetches (sk_ token = no 429)
 
 # Captions
-caption_sync: whisper             # "whisper" (exact word timing) | "estimate" (fast)
+caption_sync: estimate            # estimate = light/reliable on CI (whisper OOMs the runner -> exit 143)
 caption_size_ratio: 0.098         # fraction of width (smaller = subtler)
 caption_y_ratio: 0.60
 caption_words_per_chunk: 1
