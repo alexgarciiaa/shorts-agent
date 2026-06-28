@@ -39,7 +39,7 @@ image_workers: 1                  # sequential = gentlest on the runner (stabili
 caption_sync: estimate            # estimate = light/reliable on CI (whisper OOMs the runner -> exit 143)
 caption_size_ratio: 0.098         # fraction of width (smaller = subtler)
 caption_y_ratio: 0.60
-caption_words_per_chunk: 1        # 1 word at a time (dynamic); ffmpeg timeout+retry covers the heavier graph
+caption_words_per_chunk: 2        # 2 = stable sweet spot (1 word stacks too many ffmpeg layers -> OOM/143)
 caption_emphasis_min_len: 5       # words >= N letters go yellow (lower = more yellow)
 
 # Look
