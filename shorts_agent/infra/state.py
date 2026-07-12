@@ -32,6 +32,11 @@ class StateStore:
             "SELECT 1 FROM videos WHERE topic_hash=?", (self._h(topic),))
         return cur.fetchone() is not None
 
+    def recent_topics(self, limit: int = 30) -> list:
+        cur = self.conn.execute(
+            "SELECT topic FROM videos ORDER BY created_at DESC LIMIT ?", (limit,))
+        return [row[0] for row in cur.fetchall() if row[0]]
+
     def record(self, topic: str, title: str, url: str, privacy: str) -> None:
         self.conn.execute(
             "INSERT OR REPLACE INTO videos VALUES (?,?,?,?,?,?)",

@@ -239,6 +239,13 @@ def _unique_script(cfg: Config, use_llm: bool, state: StateStore, seed: str = ""
                    attempts: int = 3) -> VideoProject:
     gemini = cfg.gemini_api_key if use_llm else ""
     groq = cfg.groq_api_key if use_llm else ""
+    # Feed recent topics to the LLM so it never repeats/rephrases them (exact-hash
+    # dedupe alone lets near-duplicates like "Space Facts" vs "Mind-Blowing Space" slip).
+    recent = state.recent_topics(30) if use_llm else []
+    if recent:
+        seed = (f"{seed or 'any mind-blowing topic'}. Choose a genuinely DIFFERENT subject: "
+                f"do NOT repeat or rephrase any of these already-published topics: "
+                f"{'; '.join(recent)}.")
     project = build_script(gemini, groq, n_scenes=cfg.n_scenes, seed=seed,
                            language=cfg.language)
     if not use_llm:

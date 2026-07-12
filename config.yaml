@@ -29,7 +29,7 @@ scene_tail_seconds: 0.05          # pause held after each scene (lower = tighter
 
 # Visual style shared by all images (keeps a cohesive look)
 visual_style_default: "cinematic, dramatic cinematic lighting, ultra-detailed, razor sharp focus, 8k, highly detailed, professional color grading, masterpiece"
-image_upscale: 1.0                # 1.0 = render zoom at native 1080 (4x less RAM -> no OOM/143)
+image_upscale: 1.5                # 1.5 = zoom stays sharp (downscales at max zoom); OK on RAM with 2-word captions
 image_sharpen: true               # LANCZOS + unsharp for extra crispness
 seconds_per_image: 2.5            # more images (sk_ token has no rate limit)
 max_shots_per_scene: 2            # cap per scene (fewer segments per ffmpeg call = less RAM)
