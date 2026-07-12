@@ -13,7 +13,8 @@ on:
         type: boolean
         default: false
   schedule:
-    - cron: "30 10 * * *"   # daily 10:30 UTC = 12:30 Spain (CEST). Winter: 11:30 local.
+    - cron: "30 10 * * *"   # daily 10:30 UTC = 12:30 Spain (CEST)
+    - cron: "30 17 * * *"   # 2nd daily video 17:30 UTC = 19:30 Spain (2x data for the A/B loop)
 
 permissions:
   contents: write           # to commit state/history.db back

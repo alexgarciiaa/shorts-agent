@@ -38,6 +38,11 @@ class VideoProject:
     # quality / safety
     fact_risk: str = ""        # low | medium | high | unknown (from fact-check)
 
+    # A/B variant tags (fed back through analytics to learn what works)
+    subtopic: str = ""
+    hook_style: str = ""       # didyouknow | claim | question
+    intro_card: bool = True
+
     # final artifact
     output_path: Optional[str] = None
     thumbnail_path: Optional[str] = None

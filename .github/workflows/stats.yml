@@ -1,0 +1,44 @@
+name: Weekly Stats
+
+# Refreshes per-video YouTube analytics (views, retention), stores snapshots in
+# state/history.db, and prints the report to the job summary. The generate
+# pipeline reads these scores to weight future topic selection.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 9 * * 0"   # Sundays 09:00 UTC
+
+permissions:
+  contents: write
+
+jobs:
+  stats:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Refresh analytics + report
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+        run: python -m shorts_agent.main stats | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Persist stats
+        run: |
+          git config user.name "shorts-agent"
+          git config user.email "bot@users.noreply.github.com"
+          git add state/history.db || true
+          git commit -m "chore: update stats [skip ci]" || echo "no changes"
+          git pull --rebase origin main || true
+          git push || echo "nothing to push"

@@ -30,10 +30,10 @@ Write a {n}-scene short. The spoken NARRATION, title and description must be in 
 Topic / seed idea: {seed}.
 
 WRITING RULES (make it genuinely interesting, not generic):
-- Scene 1 is a short INTRO HOOK that opens with "Did you know..." and teases the
-  topic to stop the scroll, WITHOUT revealing a fact yet
-  (e.g. "Did you know your body does something insane every single night?").
+- {hook_rule}
 - Scenes 2 onward deliver the actual surprising facts — one fact per scene.
+- LOOP ENDING: the last scene's narration must tee the viewer back to the opening
+  line, so the video loops seamlessly on replay (no "goodbye"-style closers).
 - Pick FRESH, surprising facts most people DON'T already know. Avoid the obvious
   textbook ones. Each fact must have a concrete, specific, jaw-dropping detail
   (a number, comparison, or vivid consequence).
@@ -54,9 +54,22 @@ Return ONLY valid minified JSON with this exact shape:
 "title":"","description":"","tags":["",""]}}"""
 
 
-def _prompt(n: int, seed: str, language: str = "en") -> str:
+# A/B-tested opening styles; performance is compared in the weekly stats report.
+_HOOK_STYLES = {
+    "didyouknow": ('Scene 1 is a short INTRO HOOK that opens with "Did you know..." '
+                   "and teases the topic WITHOUT revealing a fact yet."),
+    "claim": ("Scene 1 is a BOLD, shocking claim (max ~8 words) that sounds almost "
+              "unbelievable — no greeting, no 'did you know'."),
+    "question": ("Scene 1 is a DIRECT QUESTION to the viewer (max ~8 words) that "
+                 "opens a curiosity gap they need resolved."),
+}
+
+
+def _prompt(n: int, seed: str, language: str = "en", hook_style: str = "") -> str:
     return _PROMPT.format(n=n, seed=seed or "any mind-blowing topic",
-                          language=_LANGUAGES.get(language, "ENGLISH"))
+                          language=_LANGUAGES.get(language, "ENGLISH"),
+                          hook_rule=_HOOK_STYLES.get(hook_style,
+                                                     _HOOK_STYLES["didyouknow"]))
 
 
 def _host(url: str) -> str:
@@ -98,26 +111,28 @@ def _post_json(url: str, payload: dict, headers: dict, attempts: int = 3,
 
 
 def build_script(gemini_api_key: str = "", groq_api_key: str = "",
-                 n_scenes: int = 6, seed: str = "", language: str = "en") -> VideoProject:
+                 n_scenes: int = 6, seed: str = "", language: str = "en",
+                 hook_style: str = "") -> VideoProject:
     """Try Gemini, fall back to Groq, then to the built-in sample script."""
     if gemini_api_key:
         try:
-            return _from_gemini(gemini_api_key, n_scenes, seed, language)
+            return _from_gemini(gemini_api_key, n_scenes, seed, language, hook_style)
         except Exception as exc:  # noqa: BLE001
             log.warning("Gemini script failed (%s); trying fallback", exc)
     if groq_api_key:
         try:
-            return _from_groq(groq_api_key, n_scenes, seed, language)
+            return _from_groq(groq_api_key, n_scenes, seed, language, hook_style)
         except Exception as exc:  # noqa: BLE001
             log.warning("Groq script failed (%s); using sample script", exc)
     return _sample_script()
 
 
 def _from_groq(api_key: str, n_scenes: int, seed: str = "",
-               language: str = "en") -> VideoProject:
+               language: str = "en", hook_style: str = "") -> VideoProject:
     payload = {
         "model": _GROQ_MODEL,
-        "messages": [{"role": "user", "content": _prompt(n_scenes, seed, language)}],
+        "messages": [{"role": "user",
+                      "content": _prompt(n_scenes, seed, language, hook_style)}],
         "response_format": {"type": "json_object"},
         "temperature": 1.0,
     }
@@ -129,9 +144,9 @@ def _from_groq(api_key: str, n_scenes: int, seed: str = "",
 
 
 def _from_gemini(api_key: str, n_scenes: int, seed: str = "",
-                 language: str = "en") -> VideoProject:
+                 language: str = "en", hook_style: str = "") -> VideoProject:
     body = {
-        "contents": [{"parts": [{"text": _prompt(n_scenes, seed, language)}]}],
+        "contents": [{"parts": [{"text": _prompt(n_scenes, seed, language, hook_style)}]}],
         "generationConfig": {
             "response_mime_type": "application/json",
             "temperature": 1.0,

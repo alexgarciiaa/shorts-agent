@@ -51,6 +51,9 @@ class Config:
     n_scenes: int = 8                          # more scenes = longer video (~5-6s each)
     niche_file: str = "knowledge/niche.yaml"   # seed subtopics for variety
     enable_fact_check: bool = True             # LLM second pass to verify/fix facts
+    # A/B experiments (tracked per video; compared in the weekly stats report)
+    ab_hook_styles: bool = True                # rotate didyouknow/claim/question hooks
+    ab_intro_card: bool = True                 # randomize intro card on/off (50/50)
     enable_trends: bool = True                 # ground ideas in trending Reddit facts
     trends_subreddits: tuple = (
         "todayilearned", "space", "Damnthatsinteresting", "science",

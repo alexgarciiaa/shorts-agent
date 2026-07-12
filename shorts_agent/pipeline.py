@@ -50,7 +50,14 @@ def run_pipeline(cfg: Config, dry_run: bool = True, use_llm: bool = True,
     if use_llm:
         seed = trending_seed(cfg) or _pick_subtopic(cfg)
         log.info("Idea seed: %s", seed)
-    project = _unique_script(cfg, use_llm, state, seed)
+    # A/B variants for this video (tagged in metadata/DB, compared weekly)
+    hook_style = (random.choice(("didyouknow", "claim", "question"))
+                  if cfg.ab_hook_styles else "didyouknow")
+    intro_card = (random.random() < 0.5 if cfg.ab_intro_card
+                  else cfg.enable_intro_card)
+    log.info("Variants: hook=%s intro_card=%s", hook_style, intro_card)
+    project = _unique_script(cfg, use_llm, state, seed, hook_style=hook_style)
+    project.subtopic, project.hook_style, project.intro_card = seed, hook_style, intro_card
 
     # 1a-bis. Duplicate guard: if the LLM is down it falls back to the sample script,
     # so skip the run instead of re-uploading an already-published topic.
@@ -161,8 +168,8 @@ def run_pipeline(cfg: Config, dry_run: bool = True, use_llm: bool = True,
         make_thumbnail(project.title or project.topic, thumb_work,
                        cfg.width, cfg.height, cfg.caption_font_candidates)
 
-    # 5a-intro. Branded title card as the FIRST frame (Shorts feed shows frame 1)
-    if cfg.enable_intro_card and thumb_work:
+    # 5a-intro. Branded title card as the FIRST frame (A/B-tested per video)
+    if project.intro_card and thumb_work:
         intro_clip = os.path.join(cfg.work_dir, "clip_intro.mp4")
         build_intro_clip(ff, cfg, thumb_work, intro_clip)
         clip_paths.insert(0, intro_clip)
@@ -236,7 +243,7 @@ def _pick_subtopic(cfg: Config) -> str:
 
 
 def _unique_script(cfg: Config, use_llm: bool, state: StateStore, seed: str = "",
-                   attempts: int = 3) -> VideoProject:
+                   attempts: int = 3, hook_style: str = "") -> VideoProject:
     gemini = cfg.gemini_api_key if use_llm else ""
     groq = cfg.groq_api_key if use_llm else ""
     # Feed recent topics to the LLM so it never repeats/rephrases them (exact-hash
@@ -247,7 +254,7 @@ def _unique_script(cfg: Config, use_llm: bool, state: StateStore, seed: str = ""
                 f"do NOT repeat or rephrase any of these already-published topics: "
                 f"{'; '.join(recent)}.")
     project = build_script(gemini, groq, n_scenes=cfg.n_scenes, seed=seed,
-                           language=cfg.language)
+                           language=cfg.language, hook_style=hook_style)
     if not use_llm:
         return project
     for _ in range(attempts - 1):
@@ -255,7 +262,7 @@ def _unique_script(cfg: Config, use_llm: bool, state: StateStore, seed: str = ""
             return project
         log.info("Topic already used (%s); regenerating...", project.topic)
         project = build_script(gemini, groq, n_scenes=cfg.n_scenes, seed=seed,
-                               language=cfg.language)
+                               language=cfg.language, hook_style=hook_style)
     return project
 
 
@@ -313,6 +320,9 @@ def _write_metadata(project: VideoProject, out_folder: str, cfg: Config,
         "cta": project.cta,
         "language": cfg.language,
         "fact_risk": project.fact_risk,
+        "subtopic": project.subtopic,
+        "hook_style": project.hook_style,
+        "intro_card": project.intro_card,
         "duration_seconds": round(duration, 2),
         "n_scenes": len(project.scenes),
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -347,7 +357,9 @@ def _publish(project: VideoProject, cfg: Config, state: StateStore,
             url = pub.upload(project)
             urls.append(url)
             state.record(f"{project.topic} [{name}]", project.title or project.topic,
-                         url, getattr(pub, "privacy", ""))
+                         url, getattr(pub, "privacy", ""),
+                         subtopic=project.subtopic, hook_style=project.hook_style,
+                         intro_card=project.intro_card)
             log.info("Published to %s: %s", name, url)
         except Exception as exc:  # noqa: BLE001 - one platform failing shouldn't abort others
             log.error("Publish to %s FAILED: %s", name, exc)

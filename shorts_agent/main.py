@@ -59,6 +59,7 @@ def main(argv=None) -> int:
                      help="Ignore the asset cache and regenerate images/voice.")
 
     sub.add_parser("check", help="Pre-flight: verify environment/config before going live.")
+    sub.add_parser("stats", help="Refresh YouTube analytics and print the channel report.")
 
     args = parser.parse_args(argv)
     if args.command == "run":
@@ -70,6 +71,9 @@ def main(argv=None) -> int:
     if args.command == "check":
         from .infra.preflight import run_checks
         return 0 if run_checks(load_config()) else 1
+    if args.command == "stats":
+        from .infra.analytics import run_stats
+        return run_stats(load_config())
     return 1
 
 
